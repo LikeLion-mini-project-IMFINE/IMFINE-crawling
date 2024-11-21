@@ -91,59 +91,59 @@ news_df = pd.DataFrame({'date': formatted_date, 'title': news_titles, 'original_
 now = datetime.now()
 news_df.to_csv('news_{}.csv'.format(now.strftime('%Y%m%d_%H시%M분%S초')), encoding='utf-8-sig', index=False)
 
-# # Chat GPT API
-# def create_chat_completion(system_input, user_input, model="gpt-4o", temperature=1.15, max_tokens=500):
-#     try:
-#         messages = [
-#             {"role": "system", "content": system_input},
-#             {"role": "user", "content": user_input}
-#         ]
-#
-#         response = OpenAI().chat.completions.create(
-#             model=model,
-#             messages=messages,
-#             temperature=temperature,
-#             max_tokens=max_tokens
-#         )
-#         return response
-#     except Exception as e:
-#         return f"Error: {str(e)}"
-#
-# # 메시지 목록 예시
-# system_input = "내가 아이들을 위한 금융교육 웹사이트를 만들려고 해. 경제 뉴스의 본문을 기반으로 아이들이 경제 내용을 이해하기 쉽게 설명해주고 싶어. 지피티 너가 12살정도의 아이들에게 이해하기 쉽게 설명해주는 선생님이 되어줘! 단 존댓말을 사용해줘"
-# user_input = f"""
-# 내가 경제 뉴스 본문을 보내줄게!
-# {str(news_contents)}
-# 이 내용을 기반으로 다음 지시사항을 JSON 형태에 맞추어 답변해줘:
-# 1. 핵심 금융경제 키워드를 아이들의 눈높이에 맞게 설명해줘.
-# 2. summary = 아이들의 눈높이에 맞게 해당 내용을 1~2줄로 요약해줘.
-# 3. content = 전체 내용을 아이들의 눈높이에 맞게 설명해줘.
-#
-# 답변 형식:
-# {{"summary": "...","content": "..."}}
-# """
-#
-#
-# # API 호출 및 결과 출력
-# print("GPT API 호출")
-# responses = create_chat_completion(system_input, user_input)
-# print("GPT API 응답 완료")
-# print(responses)
-# print("===================")
-#
-# # content 부분 추출
-# raw_content = responses.choices[0].message.content
-#
-# # 정규식으로 summary와 content 추출
-# match = re.search(r'"summary": "(.*?)",\s*"content": "(.*?)"', raw_content, re.DOTALL)
-#
-# if match:
-#     # JSON 데이터 생성
-#     extracted_data = {
-#         "summary": match.group(1),
-#         "content": match.group(2)
-#     }
-#     # JSON 출력
-#     print(json.dumps(extracted_data, indent=4, ensure_ascii=False))
-# else:
-#     print("summary와 content를 찾을 수 없습니다.")
+# Chat GPT API
+def create_chat_completion(system_input, user_input, model="gpt-4o", temperature=1.15, max_tokens=500):
+    try:
+        messages = [
+            {"role": "system", "content": system_input},
+            {"role": "user", "content": user_input}
+        ]
+
+        response = OpenAI().chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+        return response
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# 메시지 목록 예시
+system_input = "내가 아이들을 위한 금융교육 웹사이트를 만들려고 해. 경제 뉴스의 본문을 기반으로 아이들이 경제 내용을 이해하기 쉽게 설명해주고 싶어. 지피티 너가 12살정도의 아이들에게 이해하기 쉽게 설명해주는 선생님이 되어줘! 단 존댓말을 사용해줘"
+user_input = f"""
+내가 경제 뉴스 본문을 보내줄게!
+{str(news_contents)}
+이 내용을 기반으로 다음 지시사항을 JSON 형태에 맞추어 답변해줘:
+1. 핵심 금융경제 키워드를 아이들의 눈높이에 맞게 설명해줘.
+2. summary = 아이들의 눈높이에 맞게 해당 내용을 1~2줄로 요약해줘.
+3. content = 전체 내용을 아이들의 눈높이에 맞게 설명해줘.
+
+답변 형식:
+{{"summary": "...","content": "..."}}
+"""
+
+
+# API 호출 및 결과 출력
+print("GPT API 호출")
+responses = create_chat_completion(system_input, user_input)
+print("GPT API 응답 완료")
+print(responses)
+print("===================")
+
+# content 부분 추출
+raw_content = responses.choices[0].message.content
+
+# 정규식으로 summary와 content 추출
+match = re.search(r'"summary": "(.*?)",\s*"content": "(.*?)"', raw_content, re.DOTALL)
+
+if match:
+    # JSON 데이터 생성
+    extracted_data = {
+        "summary": match.group(1),
+        "content": match.group(2)
+    }
+    # JSON 출력
+    print(json.dumps(extracted_data, indent=4, ensure_ascii=False))
+else:
+    print("summary와 content를 찾을 수 없습니다.")
