@@ -117,10 +117,12 @@ user_input = f"""
 이 내용을 기반으로 다음 지시사항을 JSON 형태에 맞추어 답변해줘:
 1. 핵심 금융경제 키워드를 아이들의 눈높이에 맞게 설명해줘.
 2. summary = 아이들의 눈높이에 맞게 해당 내용을 1~2줄로 요약해줘.
-3. content = 전체 내용을 아이들의 눈높이에 맞게 설명해줘.
+3. content = 전체 본문 내용을 아이들의 눈높이에 맞게 6~7줄로 설명해줘.
+4. question = content를 바탕으로 얻을 수 있는 경제 지식과 관련한 문제를 1개 만들어줘, 단 이 문제의 답은 예/아니오로만 답할 수 있도록.
+5. answer = question의 정답을 True나 False로 표시해줘
 
 답변 형식:
-{{"summary": "...","content": "..."}}
+{{"summary": "...","content": "...", "question": "...", "answer": "True/False"}}
 """
 
 
@@ -135,15 +137,17 @@ print("===================")
 raw_content = responses.choices[0].message.content
 
 # 정규식으로 summary와 content 추출
-match = re.search(r'"summary": "(.*?)",\s*"content": "(.*?)"', raw_content, re.DOTALL)
+match = re.search(r'"summary": "(.*?)",\s*"content": "(.*?)",\s*"question": "(.*?)",\s*"answer": "(.*?)"', raw_content, re.DOTALL)
 
 if match:
     # JSON 데이터 생성
     extracted_data = {
         "summary": match.group(1),
-        "content": match.group(2)
+        "content": match.group(2),
+        "question": match.group(3),
+        "answer": match.group(4),
     }
     # JSON 출력
     print(json.dumps(extracted_data, indent=4, ensure_ascii=False))
 else:
-    print("summary와 content를 찾을 수 없습니다.")
+    print("summary와 content, question, answer를 찾을 수 없습니다.")
