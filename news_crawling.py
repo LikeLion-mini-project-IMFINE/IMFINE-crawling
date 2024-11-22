@@ -7,12 +7,18 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 import json
+import pymysql
+import uuid
+
 
 
 load_dotenv(verbose=True)
+
+# Open AI 환경 설정
 OPEN_AI_KEY = os.getenv('OPEN_AI_KEY')
 os.environ['OPENAI_API_KEY'] = OPEN_AI_KEY
 
+# =============== 크롤링 ===============
 
 # ConnectionError 방지용 User-Agent 설정
 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/98.0.4758.102"}
@@ -84,14 +90,8 @@ print(reporter)
 print("\n[뉴스 본문]")
 print(news_contents)
 
-# 데이터 프레임 생성
-news_df = pd.DataFrame({'date': formatted_date, 'title': news_titles, 'original_url': [url], 'reporter': news_reporter, 'full_content': news_contents})
 
-# 데이터 저장
-now = datetime.now()
-news_df.to_csv('news_{}.csv'.format(now.strftime('%Y%m%d_%H시%M분%S초')), encoding='utf-8-sig', index=False)
-
-# Chat GPT API
+# =============== Chat GPT API ===============
 def create_chat_completion(system_input, user_input, model="gpt-4o", temperature=1.15, max_tokens=500):
     try:
         messages = [
@@ -109,7 +109,7 @@ def create_chat_completion(system_input, user_input, model="gpt-4o", temperature
     except Exception as e:
         return f"Error: {str(e)}"
 
-# 메시지 목록 예시
+# 프롬프트
 system_input = "내가 아이들을 위한 금융교육 웹사이트를 만들려고 해. 경제 뉴스의 본문을 기반으로 아이들이 경제 내용을 이해하기 쉽게 설명해주고 싶어. 지피티 너가 12살정도의 아이들에게 이해하기 쉽게 설명해주는 선생님이 되어줘! 단 존댓말을 사용해줘"
 user_input = f"""
 내가 경제 뉴스 본문을 보내줄게!
@@ -125,9 +125,9 @@ user_input = f"""
 {{"summary": "...","content": "...", "question": "...", "answer": "True/False"}}
 """
 
-
 # API 호출 및 결과 출력
-print("GPT API 호출")
+print("\n===================")
+print("GPT API 응답 시작")
 responses = create_chat_completion(system_input, user_input)
 print("GPT API 응답 완료")
 print(responses)
@@ -151,3 +151,75 @@ if match:
     print(json.dumps(extracted_data, indent=4, ensure_ascii=False))
 else:
     print("summary와 content, question, answer를 찾을 수 없습니다.")
+
+# =============== csv로 데이터 저장 ===============
+
+# 데이터 프레임 생성
+unique_ids = [str(uuid.uuid4()) for _ in range(len(news_titles))]
+
+news_df = pd.DataFrame({
+    'id' : unique_ids,
+    'date': formatted_date,
+    'title': news_titles,
+    'original_url': [url],
+    'reporter': news_reporter,
+    'full_content': news_contents,
+    'content': extracted_data["content"],
+    'summary': extracted_data["summary"],
+    'question': extracted_data["question"],
+    'answer': extracted_data["answer"],
+})
+
+# 데이터 저장
+now = datetime.now()
+news_df.to_csv('news_{}.csv'.format(now.strftime('%Y%m%d_%H시%M분%S초')), encoding='utf-8-sig', index=False)
+
+
+# =============== RDS 연결 ===============
+# .env에서 DB 정보 로드
+RDS_ENDPOINT = os.getenv('RDS_ENDPOINT')
+RDS_PORT_NUM = int(os.getenv('RDS_PORT_NUM'))
+RDS_USERNAME = os.getenv('RDS_USERNAME')
+RDS_PASSWORD = os.getenv('RDS_PASSWORD')
+RDS_DATABASE_NAME = os.getenv('RDS_DATABASE_NAME')
+
+# RDS 연결
+try:
+    # DB 연결
+    connection = pymysql.connect(
+        host=RDS_ENDPOINT,
+        port=RDS_PORT_NUM,
+        user=RDS_USERNAME,
+        password=RDS_PASSWORD,
+        database=RDS_DATABASE_NAME,
+        charset='utf8mb4'
+    )
+    cursor = connection.cursor()
+
+    # 데이터 삽입
+    insert_query = """
+    INSERT INTO news (id, content, date, original_url, reporter, summary, title)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """
+
+    for _, row in news_df.iterrows():
+        cursor.execute(insert_query, (
+            row['id'],
+            row['content'],
+            row['date'],
+            row['original_url'],
+            row['reporter'],
+            row['summary'],
+            row['title']
+        ))
+
+    # 변경 사항 저장
+    connection.commit()
+    print("데이터 삽입 완료")
+except Exception as e:
+    print(f"DB 작업 중 오류 발생: {str(e)}")
+finally:
+    # 연결 종료
+    cursor.close()
+    connection.close()
+
