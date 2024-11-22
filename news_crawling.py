@@ -120,9 +120,9 @@ user_input = f"""
 3. content = 전체 본문 내용을 아이들의 눈높이에 맞게 6~7줄로 설명해줘.
 4. question = content를 바탕으로 얻을 수 있는 경제 지식과 관련한 문제를 1개 만들어줘, 단 이 문제의 답은 예/아니오로만 답할 수 있도록.
 5. answer = question의 정답을 True나 False로 표시해줘
-6. term1 = content 속에 있는 핵심 금융경제 키워드 1개를 제시해줘
+6. term1 = content 속에 있는 중요한 경제 관련 키워드 1개를 제시해줘
 7. term1_meaning = term1의 뜻을 아이들의 눈높이에 맞추어 1~2줄로 설명해줘
-8. term2 = 또 다른 content 속에 있는 핵심 금융경제 키워드 1개를 제시해줘
+8. term2 = 또 다른 content 속에 있는 중요한 경제 관련 키워드 1개를 제시해줘
 9. term2_meaning = term2의 뜻을 아이들의 눈높이에 맞추어 1~2줄로 설명해줘
 
 답변 형식:
@@ -160,9 +160,9 @@ if match:
     answer_raw = extracted_data.get("answer", "").strip().lower()
 
     if answer_raw in ["true", "o"]:
-        answer_bool = True
+        answer_bool = "true"
     elif answer_raw in ["false", "x"]:
-        answer_bool = False
+        answer_bool = "false"
     else:
         answer_bool = None  # 예외 처리: 지정되지 않은 값
 
@@ -189,6 +189,7 @@ news_df = pd.DataFrame({
     'content': extracted_data["content"],
     'summary': extracted_data["summary"],
     'question': extracted_data["question"],
+    'answer': extracted_data["answer"],
     'term1': extracted_data["term1"],
     'term1_meaning': extracted_data["term1_meaning"],
     'term2': extracted_data["term2"],
@@ -198,71 +199,91 @@ news_df = pd.DataFrame({
 # 데이터 저장
 now = datetime.now()
 news_df.to_csv('news_{}.csv'.format(now.strftime('%Y%m%d_%H시%M분%S초')), encoding='utf-8-sig', index=False)
-#
-#
-# # =============== RDS 연결 ===============
-# # .env에서 DB 정보 로드
-# RDS_ENDPOINT = os.getenv('RDS_ENDPOINT')
-# RDS_PORT_NUM = int(os.getenv('RDS_PORT_NUM'))
-# RDS_USERNAME = os.getenv('RDS_USERNAME')
-# RDS_PASSWORD = os.getenv('RDS_PASSWORD')
-# RDS_DATABASE_NAME = os.getenv('RDS_DATABASE_NAME')
-#
-# # RDS 연결
-# try:
-#     # DB 연결
-#     connection = pymysql.connect(
-#         host=RDS_ENDPOINT,
-#         port=RDS_PORT_NUM,
-#         user=RDS_USERNAME,
-#         password=RDS_PASSWORD,
-#         database=RDS_DATABASE_NAME,
-#         charset='utf8mb4'
-#     )
-#     cursor = connection.cursor()
-#
-#     # news 데이터 삽입
-#     insert_query = """
-#     INSERT INTO news (id, content, date, original_url, reporter, summary, title)
-#     VALUES (%s, %s, %s, %s, %s, %s, %s)
-#     """
-#
-#     for _, row in news_df.iterrows():
-#         cursor.execute(insert_query, (
-#             row['id'],
-#             row['content'],
-#             row['date'],
-#             row['original_url'],
-#             row['reporter'],
-#             row['summary'],
-#             row['title']
-#         ))
-#
-#     # 변경 사항 저장
-#     connection.commit()
-#
-#     # quiz 데이터 삽입
-#     insert_query = """
-#         INSERT INTO quiz (answer, question, news_id)
-#         VALUES (%s, %s, %s)
-#         """
-#
-#     for _, row in news_df.iterrows():
-#         cursor.execute(insert_query, (
-#             row['answer'],
-#             row['question'],
-#             row['id'],
-#         ))
-#
-#     # 변경 사항 저장
-#     connection.commit()
-#
-#
-#     print("데이터 삽입 완료")
-# except Exception as e:
-#     print(f"DB 작업 중 오류 발생: {str(e)}")
-# finally:
-#     # 연결 종료
-#     cursor.close()
-#     connection.close()
-#
+
+
+# =============== RDS 연결 ===============
+# .env에서 DB 정보 로드
+RDS_ENDPOINT = os.getenv('RDS_ENDPOINT')
+RDS_PORT_NUM = int(os.getenv('RDS_PORT_NUM'))
+RDS_USERNAME = os.getenv('RDS_USERNAME')
+RDS_PASSWORD = os.getenv('RDS_PASSWORD')
+RDS_DATABASE_NAME = os.getenv('RDS_DATABASE_NAME')
+
+# RDS 연결
+try:
+    # DB 연결
+    connection = pymysql.connect(
+        host=RDS_ENDPOINT,
+        port=RDS_PORT_NUM,
+        user=RDS_USERNAME,
+        password=RDS_PASSWORD,
+        database=RDS_DATABASE_NAME,
+        charset='utf8mb4'
+    )
+    cursor = connection.cursor()
+
+    # news 데이터 삽입
+    insert_query = """
+    INSERT INTO news (id, content, date, original_url, reporter, summary, title)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """
+
+    for _, row in news_df.iterrows():
+        cursor.execute(insert_query, (
+            row['id'],
+            row['content'],
+            row['date'],
+            row['original_url'],
+            row['reporter'],
+            row['summary'],
+            row['title']
+        ))
+
+    # term 데이터 삽입
+    insert_query = """
+           INSERT INTO news_term (meaning, term, news_id)
+           VALUES (%s, %s, %s)
+           """
+
+    for _, row in news_df.iterrows():
+        cursor.execute(insert_query, (
+            row['term1_meaning'],
+            row['term1'],
+            row['id'],
+        ))
+
+    for _, row in news_df.iterrows():
+        cursor.execute(insert_query, (
+            row['term2_meaning'],
+            row['term2'],
+            row['id'],
+        ))
+
+
+    # 변경 사항 저장
+    connection.commit()
+
+    # quiz 데이터 삽입
+    insert_query = """
+        INSERT INTO quiz (answer, question, news_id)
+        VALUES (%s, %s, %s)
+        """
+
+    for _, row in news_df.iterrows():
+        cursor.execute(insert_query, (
+            row['answer'],
+            row['question'],
+            row['id'],
+        ))
+
+    # 변경 사항 저장
+    connection.commit()
+
+    print("데이터 삽입 완료")
+except Exception as e:
+    print(f"DB 작업 중 오류 발생: {str(e)}")
+finally:
+    # 연결 종료
+    cursor.close()
+    connection.close()
+
