@@ -9,6 +9,7 @@ from openai import OpenAI
 import json
 import pymysql
 import uuid
+import random
 
 
 
@@ -109,6 +110,9 @@ def create_chat_completion(system_input, user_input, model="gpt-4o", temperature
     except Exception as e:
         return f"Error: {str(e)}"
 
+# 랜덤으로 True/False 생성
+random_answer = random.choice([True, False])
+
 # 프롬프트
 system_input = "내가 아이들을 위한 금융교육 웹사이트를 만들려고 해. 경제 뉴스의 본문을 기반으로 아이들이 경제 내용을 이해하기 쉽게 설명해주고 싶어. 지피티 너가 12살정도의 아이들에게 이해하기 쉽게 설명해주는 선생님이 되어줘! 단 존댓말을 사용해줘"
 user_input = f"""
@@ -118,8 +122,8 @@ user_input = f"""
 1. 본문에 있는 핵심 금융경제 개념을 아이들의 눈높이에 맞게 설명해줘.
 2. summary = 아이들의 눈높이에 맞게 해당 내용을 1~2줄로 요약해줘.
 3. content = 전체 본문 내용을 아이들의 눈높이에 맞게 6~7줄로 설명해줘.
-4. question = content를 바탕으로 얻을 수 있는 경제 지식과 관련한 문제를 1개 만들어줘, 단 이 문제의 답은 예/아니오로만 답할 수 있도록.
-5. answer = question의 정답을 True나 False로 표시해줘
+4. question = content를 바탕으로 얻을 수 있는 경제 지식과 관련한 문제를 1개 만들어줘, 단 이 문제의 답은 {random_answer}야.
+5. answer = {random_answer} 
 6. term1 = content 속에 있는 중요한 경제 관련 키워드 1개를 제시해줘
 7. term1_meaning = term1의 뜻을 아이들의 눈높이에 맞추어 1~2줄로 설명해줘
 8. term2 = 또 다른 content 속에 있는 중요한 경제 관련 키워드 1개를 제시해줘
@@ -149,25 +153,12 @@ if match:
         "summary": match.group(1),
         "content": match.group(2),
         "question": match.group(3),
-        "answer": match.group(4),
+        "answer": random_answer,
         "term1": match.group(5),
         "term1_meaning": match.group(6),
         "term2": match.group(7),
         "term2_meaning": match.group(8)
     }
-
-    # answer bool값으로 변환
-    answer_raw = extracted_data.get("answer", "").strip().lower()
-
-    if answer_raw in ["true", "o"]:
-        answer_bool = "true"
-    elif answer_raw in ["false", "x"]:
-        answer_bool = "false"
-    else:
-        answer_bool = None  # 예외 처리: 지정되지 않은 값
-
-    # 변환된 값 업데이트
-    extracted_data["answer"] = answer_bool
 
     # JSON 출력
     print(json.dumps(extracted_data, indent=4, ensure_ascii=False))
