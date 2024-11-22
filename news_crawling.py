@@ -71,7 +71,7 @@ except AttributeError:
 # 날짜 형식 맞춤
 date_obj = datetime.strptime(news_date, "%Y-%m-%d %H:%M:%S")
 formatted_date = date_obj.strftime("%Y-%m-%d")
-print(formatted_date)
+# print(formatted_date)
 
 # 결과 리스트에 추가
 news_titles.append(title)
@@ -79,17 +79,17 @@ news_contents.append(content)
 news_dates.append(formatted_date)
 news_reporter.append(reporter)
 
-# 결과 출력
-print("\n[뉴스 제목]")
-print(news_titles)
-print("\n[뉴스 링크]")
-print(url)
-print("\n[뉴스 시간]")
-print(formatted_date)
-print("\n[뉴스 기자]")
-print(reporter)
-print("\n[뉴스 본문]")
-print(news_contents)
+# # 결과 출력
+# print("\n[뉴스 제목]")
+# print(news_titles)
+# print("\n[뉴스 링크]")
+# print(url)
+# print("\n[뉴스 시간]")
+# print(formatted_date)
+# print("\n[뉴스 기자]")
+# print(reporter)
+# print("\n[뉴스 본문]")
+# print(news_contents)
 
 
 # =============== Chat GPT API ===============
@@ -161,7 +161,7 @@ if match:
     }
 
     # JSON 출력
-    print(json.dumps(extracted_data, indent=4, ensure_ascii=False))
+    # print(json.dumps(extracted_data, indent=4, ensure_ascii=False))
 else:
     print("정규식 추출 오류")
 
@@ -190,6 +190,12 @@ news_df = pd.DataFrame({
 # 데이터 저장
 now = datetime.now()
 news_df.to_csv('news_{}.csv'.format(now.strftime('%Y%m%d_%H시%M분%S초')), encoding='utf-8-sig', index=False)
+
+# 열 이름과 데이터를 하나씩 출력
+for col in news_df.columns:
+    print(f"Column: {col}")
+    print(news_df[col])
+    print("-" * 50)  # 구분선 추가
 
 
 # =============== RDS 연결 ===============
@@ -250,9 +256,6 @@ try:
             row['id'],
         ))
 
-
-    # 변경 사항 저장
-    connection.commit()
 
     # quiz 데이터 삽입
     insert_query = """
