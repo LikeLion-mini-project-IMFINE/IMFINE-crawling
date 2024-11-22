@@ -147,13 +147,27 @@ if match:
         "question": match.group(3),
         "answer": match.group(4),
     }
+
+    # answer bool값으로 변환
+    answer_raw = extracted_data.get("answer", "").strip().lower()
+
+    if answer_raw in ["true", "o"]:
+        answer_bool = True
+    elif answer_raw in ["false", "x"]:
+        answer_bool = False
+    else:
+        answer_bool = None  # 예외 처리: 지정되지 않은 값
+
+    # 변환된 값 업데이트
+    extracted_data["answer"] = answer_bool
+
     # JSON 출력
     print(json.dumps(extracted_data, indent=4, ensure_ascii=False))
 else:
     print("summary와 content, question, answer를 찾을 수 없습니다.")
 
-# =============== csv로 데이터 저장 ===============
 
+# =============== csv로 데이터 저장 ===============
 # 데이터 프레임 생성
 unique_ids = [str(uuid.uuid4()) for _ in range(len(news_titles))]
 
@@ -196,7 +210,7 @@ try:
     )
     cursor = connection.cursor()
 
-    # 데이터 삽입
+    # news 데이터 삽입
     insert_query = """
     INSERT INTO news (id, content, date, original_url, reporter, summary, title)
     VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -215,6 +229,24 @@ try:
 
     # 변경 사항 저장
     connection.commit()
+
+    # quiz 데이터 삽입
+    insert_query = """
+        INSERT INTO quiz (answer, question, news_id)
+        VALUES (%s, %s, %s)
+        """
+
+    for _, row in news_df.iterrows():
+        cursor.execute(insert_query, (
+            row['answer'],
+            row['question'],
+            row['id'],
+        ))
+
+    # 변경 사항 저장
+    connection.commit()
+
+
     print("데이터 삽입 완료")
 except Exception as e:
     print(f"DB 작업 중 오류 발생: {str(e)}")
