@@ -257,9 +257,6 @@ try:
         ))
 
 
-    # 변경 사항 저장
-    connection.commit()
-
     # quiz 데이터 삽입
     insert_query = """
         INSERT INTO quiz (answer, question, news_id)
